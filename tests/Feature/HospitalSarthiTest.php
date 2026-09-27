@@ -6,6 +6,7 @@ use App\Models\GuideAvailability;
 use App\Models\GuideProfile;
 use App\Models\Hospital;
 use App\Models\Booking;
+use App\Models\Service;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,6 +23,15 @@ class HospitalSarthiTest extends TestCase
             ->assertSee('A familiar face')
             ->assertSee('Tokens & queues', false)
             ->assertSee('Not medical care or advice.', false);
+    }
+
+    public function test_homepage_modal_defaults_to_an_active_database_service(): void
+    {
+        $service = Service::create(['name' => 'OPD registration', 'base_price' => 300, 'is_active' => true]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('serviceId: '.$service->id, false);
     }
 
     public function test_hospital_api_only_returns_matching_active_hospitals(): void
@@ -228,6 +238,7 @@ class HospitalSarthiTest extends TestCase
         $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
         $guide = GuideProfile::create(['user_id' => $guideUser->id, 'is_verified' => true, 'is_available' => true]);
         $guide->hospitals()->attach($hospital);
+        Service::create(['name' => 'OPD registration', 'base_price' => 300, 'is_active' => true]);
         $visitDate = Carbon::today()->next(Carbon::MONDAY);
         GuideAvailability::create([
             'guide_profile_id' => $guide->id,
@@ -250,5 +261,77 @@ class HospitalSarthiTest extends TestCase
             'guide_profile_id' => $guide->id,
             'status' => 'pending',
         ]);
+    }
+
+    public function test_modal_booking_stores_database_service_price_and_pending_payment(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $guideUser = User::factory()->create(['role' => 'guide']);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $guide = GuideProfile::create(['user_id' => $guideUser->id, 'is_verified' => true, 'is_available' => true]);
+        $guide->hospitals()->attach($hospital);
+        $service = Service::create(['name' => 'OPD registration', 'base_price' => 425, 'is_active' => true]);
+        $visitDate = Carbon::today()->next(Carbon::MONDAY);
+        GuideAvailability::create([
+            'guide_profile_id' => $guide->id,
+            'weekday' => $visitDate->dayOfWeek,
+            'start_time' => '09:00',
+            'end_time' => '12:00',
+        ]);
+
+        $response = $this->actingAs($patient)->postJson(route('bookings.store'), [
+            'hospital_id' => $hospital->id,
+            'service_id' => $service->id,
+            'guide_id' => $guide->id,
+            'date' => $visitDate->toDateString(),
+            'time' => '10:00',
+            'patient_name' => 'Asha Patient',
+            'mobile' => '+91 98765-43210',
+            'note' => 'Please meet at the main entrance.',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Booking created successfully. Payment is pending; no payment was collected.');
+
+        $bookingId = $response->json('booking_id');
+        $this->assertDatabaseHas('bookings', [
+            'id' => $bookingId,
+            'patient_id' => $patient->id,
+            'patient_name' => 'Asha Patient',
+            'mobile' => '9876543210',
+            'guide_profile_id' => $guide->id,
+            'hospital_id' => $hospital->id,
+            'service' => $service->name,
+            'message' => 'Please meet at the main entrance.',
+            'status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+        $booking = Booking::findOrFail($bookingId);
+        $this->assertSame($visitDate->toDateString(), $booking->visit_date->toDateString());
+        $this->assertSame('10:00', substr($booking->start_time, 0, 5));
+        $this->assertSame('425.00', $booking->amount);
+        $this->assertDatabaseHas('booking_services', ['booking_id' => $bookingId, 'service_id' => $service->id]);
+    }
+
+    public function test_modal_booking_rejects_invalid_mobile_and_past_visit_date(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $guideUser = User::factory()->create(['role' => 'guide']);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $guide = GuideProfile::create(['user_id' => $guideUser->id]);
+        $service = Service::create(['name' => 'OPD registration', 'base_price' => 425, 'is_active' => true]);
+
+        $this->actingAs($patient)->postJson(route('bookings.store'), [
+            'hospital_id' => $hospital->id,
+            'service_id' => $service->id,
+            'guide_id' => $guide->id,
+            'date' => Carbon::yesterday()->toDateString(),
+            'time' => '10:00',
+            'patient_name' => 'Asha Patient',
+            'mobile' => '12345',
+        ])->assertUnprocessable()->assertJsonValidationErrors(['mobile', 'visit_date']);
+
+        $this->assertDatabaseCount('bookings', 0);
     }
 }

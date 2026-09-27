@@ -13,9 +13,25 @@ class Booking extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['patient_id', 'guide_profile_id', 'hospital_id', 'service', 'visit_date', 'start_time', 'message', 'status'];
+    protected $fillable = [
+        'patient_id',
+        'patient_name',
+        'mobile',
+        'guide_profile_id',
+        'hospital_id',
+        'service',
+        'visit_date',
+        'start_time',
+        'message',
+        'amount',
+        'status',
+        'payment_status',
+    ];
 
-    protected $casts = ['visit_date' => 'date'];
+    protected $casts = [
+        'visit_date' => 'date',
+        'amount' => 'decimal:2',
+    ];
 
     public function patient(): BelongsTo
     {

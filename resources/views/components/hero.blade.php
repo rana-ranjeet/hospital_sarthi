@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="{{ asset('css/hero-home.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/stats-bar.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/services-section.css') }}" rel="stylesheet">
     <link href="{{ asset('css/home-footer.css') }}" rel="stylesheet">
     <link href="{{ asset('css/book-guide-modal.css') }}" rel="stylesheet">
 </head>
@@ -20,7 +22,7 @@
                 <span class="cura-brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 19 5v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V5l7-3Z"/><path d="m9.5 12 1.8 1.8 3.2-3.8"/></svg>
                 </span>
-                <span class="cura-brand-copy"><strong>CuraGuide</strong><small>NAVIGATE WITH CONFIDENCE</small></span>
+                <span class="cura-brand-copy"><strong>AapkaSarthi</strong><small>NAVIGATE WITH CONFIDENCE</small></span>
             </a>
 
             <nav class="cura-nav" aria-label="Main navigation">
@@ -49,16 +51,16 @@
             <div class="cura-hero-inner">
                 <div class="cura-hero-copy">
                     <span class="cura-eyebrow"><span></span> Verified companions, human support</span>
-                    <h1>Get personal assistance <span>inside the hospital.</span></h1>
+                    <h1>Get personal assistance <span> At the hospital.</span></h1>
                     <p class="cura-lede">Book a verified hospital guide to help you navigate registration, departments, tests, billing and the moments in between.</p>
 
                     <div class="cura-actions">
                         <button type="button" class="cura-button" x-data @click="$dispatch('open-book-guide-modal')">Book a guide
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
                         </button>
-                        <a class="cura-button cura-button-secondary" href="#hospitals">
+                        <a class="cura-button cura-button-secondary" href="tel:+919522104158">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                            Find a hospital
+                            Contact us
                         </a>
                     </div>
 
@@ -79,41 +81,15 @@
                 </div>
             </div>
         </section>
+@include('components.stats-bar')
+@include('components.services-section')
+@include('components.how-it-works')
 
-        <section class="cura-section cura-hospitals" id="hospitals">
-            <div class="cura-section-heading">
-                <div><span class="cura-eyebrow"><span></span> Find local support</span><h2>Hospitals near you</h2></div>
-                <p>Choose the hospital for your visit and meet guides who know the way around.</p>
-            </div>
-            <div class="cura-hospital-list">
-                @forelse($hospitals as $hospital)
-                    <article class="cura-hospital-row">
-                        <span class="cura-hospital-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V6l7-3 7 3v15M9 9h.01M15 9h.01M9 13h.01M15 13h.01M10 21v-4h4v4"/></svg></span>
-                        <div class="cura-hospital-info"><strong>{{ $hospital->name }}</strong><span>{{ $hospital->city }} · {{ $hospital->address }}</span></div>
-                        <a class="cura-row-link" href="{{ route('hospitals.guides', $hospital) }}">Meet the guides <span aria-hidden="true">→</span></a>
-                    </article>
-                @empty
-                    <p class="cura-empty">Hospitals are being added to the directory. Please check back soon.</p>
-                @endforelse
-            </div>
-        </section>
+        
 
-        <section class="cura-section cura-support" id="services">
-            <div class="cura-section-heading">
-                <div><span class="cura-eyebrow"><span></span> Practical, non-medical help</span><h2>Support for the steps in between</h2></div>
-                <p>Guides help with hospital navigation and coordination. They do not provide medical advice or treatment.</p>
-            </div>
-            <div class="cura-service-list">
-                <span>OPD registration</span><span>Tokens & queues</span><span>Tests and reports</span><span>Billing and pharmacy</span>
-            </div>
-        </section>
+        
 
-        <section class="cura-how" id="how-it-works">
-            <div class="cura-section cura-how-inner">
-                <span class="cura-eyebrow"><span></span> A simpler hospital visit</span>
-                <div class="cura-steps"><div><b>01</b><strong>Choose your hospital</strong><span>Find the place you are visiting.</span></div><div><b>02</b><strong>Meet your guide</strong><span>Choose a verified local companion.</span></div><div><b>03</b><strong>Arrive with a plan</strong><span>Get practical support on the day.</span></div></div>
-            </div>
-        </section>
+        
 
         <section class="cura-section cura-faq" id="faq">
             <span class="cura-eyebrow"><span></span> Good to know</span>
