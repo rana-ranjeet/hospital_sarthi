@@ -47,13 +47,17 @@ Route::middleware(['auth', 'active', 'role:guide'])->prefix('guide')->name('guid
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+	Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
 	Route::post('/hospitals', [AdminController::class, 'storeHospital'])->name('hospitals.store');
 	Route::patch('/hospitals/{hospital}', [AdminController::class, 'toggleHospital'])->name('hospitals.toggle');
 	Route::put('/hospitals/{hospital}', [AdminController::class, 'updateHospital'])->name('hospitals.update');
 	Route::delete('/hospitals/{hospital}', [AdminController::class, 'deleteHospital'])->name('hospitals.delete');
 	Route::patch('/guides/{guideProfile}', [AdminController::class, 'verifyGuide'])->name('guides.verify');
+	Route::post('/guides', [AdminController::class, 'storeGuide'])->name('guides.store');
+	Route::put('/guides/{guideProfile}', [AdminController::class, 'updateGuide'])->name('guides.update');
 	Route::post('/guides/{guideProfile}/documents', [AdminController::class, 'uploadGuideDocument'])->name('guides.documents.upload');
 	Route::get('/guides/{guideProfile}/documents', [AdminController::class, 'viewGuideDocument'])->name('guides.documents.view');
+	Route::delete('/guides/{guideProfile}/documents', [AdminController::class, 'deleteGuideDocument'])->name('guides.documents.delete');
 	Route::put('/users/{user}', [AdminController::class, 'updateUser'])->name('users.update');
 	Route::patch('/users/{user}/block', [AdminController::class, 'toggleUserBlock'])->name('users.block');
 	Route::delete('/users/{user}', [AdminController::class, 'deleteUser'])->name('users.delete');

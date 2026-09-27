@@ -28,7 +28,7 @@ class DashboardController extends Controller
 
             return view('admin.dashboard', [
                 'hospitals' => Hospital::orderBy('name')->get(),
-                'guides' => GuideProfile::with(['user', 'hospitals'])->latest()->get(),
+                'guides' => GuideProfile::with(['user', 'hospitals', 'availabilities'])->latest()->get(),
                 'users' => User::query()->with('guideProfile')->latest()->paginate(20, ['*'], 'users_page')->withQueryString(),
                 'bookings' => $bookings,
                 'services' => Service::query()->orderBy('name')->get(),

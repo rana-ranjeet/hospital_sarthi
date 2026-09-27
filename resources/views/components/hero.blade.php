@@ -27,7 +27,10 @@
                 <a href="#hospitals">Hospitals</a>
                 <a href="#services">Services</a>
                 <a href="#how-it-works">How it works</a>
-                <a href="#faq">FAQ</a>
+              <a href="https://wa.me/919522104158?text=Hello%20Hospital%20Sarthi%2C%20I%20want%20to%20make%20a%20booking." target="_blank">
+    Bookings
+</a>
+
             </nav>
 
             <div class="cura-header-actions">

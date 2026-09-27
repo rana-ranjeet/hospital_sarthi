@@ -12,7 +12,7 @@ class GuideProfile extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'bio', 'languages', 'years_experience', 'hourly_rate', 'is_verified', 'is_available', 'status', 'document_path'];
+    protected $fillable = ['user_id', 'bio', 'languages', 'years_experience', 'specialization', 'hourly_rate', 'is_verified', 'is_available', 'status', 'document_path'];
 
     protected $casts = [
         'languages' => 'array',

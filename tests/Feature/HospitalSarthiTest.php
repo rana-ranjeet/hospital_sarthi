@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\GuideAvailability;
 use App\Models\GuideProfile;
 use App\Models\Hospital;
+use App\Models\Booking;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -94,8 +95,112 @@ class HospitalSarthiTest extends TestCase
         $this->actingAs($admin)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Add a hospital')
+            ->assertSee('Add hospital')
             ->assertSee('Review guide profiles');
+    }
+
+    public function test_admin_can_manage_guide_profile_and_non_admins_cannot(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $guideUser = User::factory()->create(['role' => 'guide']);
+        $guide = GuideProfile::create(['user_id' => $guideUser->id]);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+
+        $this->actingAs($admin)->put(route('admin.guides.update', $guide), [
+            'name' => 'Updated Guide',
+            'email' => $guideUser->email,
+            'phone' => '9000000001',
+            'bio' => 'Supports visitors through appointments.',
+            'languages' => 'Hindi, English',
+            'years_experience' => 8,
+            'specialization' => 'Patient navigation',
+            'hourly_rate' => 450,
+            'status' => 'verified',
+            'is_available' => '1',
+            'hospitals' => [$hospital->id],
+            'availability' => [
+                ['weekday' => 1, 'start_time' => '09:00', 'end_time' => '13:00'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['id' => $guideUser->id, 'name' => 'Updated Guide', 'phone' => '9000000001']);
+        $this->assertDatabaseHas('guide_profiles', [
+            'id' => $guide->id,
+            'specialization' => 'Patient navigation',
+            'years_experience' => 8,
+            'hourly_rate' => 450,
+            'status' => 'verified',
+            'is_verified' => true,
+            'is_available' => true,
+        ]);
+        $this->assertDatabaseHas('hospital_guide', ['guide_profile_id' => $guide->id, 'hospital_id' => $hospital->id]);
+        $this->assertDatabaseHas('guide_availabilities', [
+            'guide_profile_id' => $guide->id,
+            'weekday' => 1,
+            'start_time' => '09:00',
+            'end_time' => '13:00',
+        ]);
+
+        $this->actingAs($guideUser)->put(route('admin.guides.update', $guide), [
+            'name' => 'Attempted Change',
+        ])->assertForbidden();
+
+        $this->assertDatabaseMissing('users', ['id' => $guideUser->id, 'name' => 'Attempted Change']);
+    }
+
+    public function test_admin_can_create_patient_and_guide_accounts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)->post(route('admin.users.store'), [
+            'name' => 'New Patient',
+            'email' => 'patient@example.test',
+            'phone' => '9000000002',
+            'password' => 'safe-password-123',
+            'password_confirmation' => 'safe-password-123',
+        ])->assertRedirect();
+
+        $this->post(route('admin.guides.store'), [
+            'name' => 'New Guide',
+            'email' => 'guide@example.test',
+            'phone' => '9000000003',
+            'password' => 'safe-password-123',
+            'password_confirmation' => 'safe-password-123',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['email' => 'patient@example.test', 'role' => 'patient']);
+        $this->assertDatabaseHas('users', ['email' => 'guide@example.test', 'role' => 'guide']);
+        $this->assertDatabaseHas('guide_profiles', [
+            'user_id' => User::where('email', 'guide@example.test')->value('id'),
+            'status' => 'pending',
+            'is_verified' => false,
+            'is_available' => false,
+        ]);
+    }
+
+    public function test_admin_cannot_delete_users_with_bookings(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $patient = User::factory()->create(['role' => 'patient']);
+        $guideUser = User::factory()->create(['role' => 'guide']);
+        $guide = GuideProfile::create(['user_id' => $guideUser->id]);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $booking = Booking::create([
+            'patient_id' => $patient->id,
+            'guide_profile_id' => $guide->id,
+            'hospital_id' => $hospital->id,
+            'service' => 'OPD registration',
+            'visit_date' => Carbon::tomorrow()->toDateString(),
+            'start_time' => '10:00',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)->delete(route('admin.users.delete', $patient))->assertStatus(422);
+        $this->delete(route('admin.users.delete', $guideUser))->assertStatus(422);
+
+        $this->assertDatabaseHas('users', ['id' => $patient->id]);
+        $this->assertDatabaseHas('users', ['id' => $guideUser->id]);
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id]);
     }
 
     public function test_only_patients_can_submit_a_booking_request(): void
