@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\HospitalController;
+use App\Http\Controllers\PatientController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,6 +28,8 @@ Route::middleware('guest')->group(function () {
 	Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login.store');
 	Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 	Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('register.store');
+	Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('auth.google.redirect');
+	Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 });
 
 Route::get('/hospitals/{hospital}/guides', [HospitalController::class, 'guides'])->name('hospitals.guides');
@@ -37,16 +40,19 @@ Route::middleware(['auth', 'active'])->group(function () {
 });
 
 Route::middleware(['auth', 'active', 'role:patient'])->group(function () {
+	Route::patch('/patient/profile', [PatientController::class, 'updateProfile'])->name('patient.profile.update');
 	Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 	Route::delete('/bookings/{booking}', [BookingController::class, 'cancel'])->name('bookings.cancel');
 });
 
 Route::middleware(['auth', 'active', 'role:guide'])->prefix('guide')->name('guide.')->group(function () {
+	Route::patch('/availability', [GuideController::class, 'updateAvailability'])->name('availability.update');
 	Route::put('/profile', [GuideController::class, 'updateProfile'])->name('profile.update');
 	Route::patch('/bookings/{booking}', [GuideController::class, 'respond'])->name('bookings.respond');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+	Route::get('/manage/{section}', [AdminController::class, 'manage'])->where('section', 'users|guides|hospitals|services|bookings|payments|reviews|commission')->name('manage');
 	Route::post('/users', [AdminController::class, 'storeUser'])->name('users.store');
 	Route::post('/hospitals', [AdminController::class, 'storeHospital'])->name('hospitals.store');
 	Route::patch('/hospitals/{hospital}', [AdminController::class, 'toggleHospital'])->name('hospitals.toggle');

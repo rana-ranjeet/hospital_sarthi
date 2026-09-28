@@ -17,6 +17,15 @@ class Booking extends Model
         'patient_id',
         'patient_name',
         'mobile',
+        'mobile_country_code',
+        'mobile_number',
+        'alternate_country_code',
+        'alternate_mobile_number',
+        'age',
+        'gender',
+        'blood_group',
+        'relationship_with_patient',
+        'other_relationship',
         'guide_profile_id',
         'hospital_id',
         'service',
@@ -31,6 +40,20 @@ class Booking extends Model
     protected $casts = [
         'visit_date' => 'date',
         'amount' => 'decimal:2',
+    ];
+
+    protected $hidden = [
+        'patient_name',
+        'mobile',
+        'mobile_country_code',
+        'mobile_number',
+        'alternate_country_code',
+        'alternate_mobile_number',
+        'age',
+        'gender',
+        'blood_group',
+        'relationship_with_patient',
+        'other_relationship',
     ];
 
     public function patient(): BelongsTo

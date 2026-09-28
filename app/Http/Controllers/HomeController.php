@@ -11,16 +11,14 @@ class HomeController extends Controller
     {
         $hospitals = Hospital::query()
             ->where('is_active', true)
-            ->withCount(['guides as verified_guides_count' => fn ($query) => $query->where('is_verified', true)])
-            ->orderByDesc('verified_guides_count')
-            ->limit(6)
-            ->get();
-
-        $bookingHospital = Hospital::query()
-            ->where('is_active', true)
-            ->whereHas('guides', fn ($query) => $query->where('is_verified', true)->where('is_available', true))
             ->orderBy('name')
-            ->first();
+            ->get(['id', 'name', 'city']);
+        $cityOptions = collect(['Bhopal', 'Lucknow'])
+            ->merge($hospitals->pluck('city'))
+            ->filter()
+            ->unique(fn ($city) => mb_strtolower($city))
+            ->sort()
+            ->values();
         $modalServices = Service::query()
             ->where('is_active', true)
             ->orderBy('name')
@@ -31,22 +29,12 @@ class HomeController extends Controller
                 'description' => $service->description,
                 'price' => $service->base_price,
             ]);
-        $modalGuides = $bookingHospital?->guides()
-            ->with('user:id,name')
-            ->where('is_verified', true)
-            ->where('is_available', true)
-            ->orderByDesc('years_experience')
-            ->get()
-            ->map(fn ($guide) => [
-                'id' => $guide->id,
-                'name' => $guide->user->name,
-                'rating' => null,
-                'years' => $guide->years_experience,
-                'languages' => implode(', ', $guide->languages ?? []),
-                'initials' => collect(explode(' ', $guide->user->name))->map(fn ($part) => mb_substr($part, 0, 1))->take(2)->implode(''),
-                'photo' => null,
-            ]) ?? collect();
+        $hospitalOptions = $hospitals->map(fn (Hospital $hospital) => [
+            'id' => $hospital->id,
+            'name' => $hospital->name,
+            'city' => $hospital->city,
+        ]);
 
-        return view('components.hero', compact('hospitals', 'bookingHospital', 'modalServices', 'modalGuides'));
+        return view('components.hero', compact('hospitals', 'cityOptions', 'hospitalOptions', 'modalServices'));
     }
 }

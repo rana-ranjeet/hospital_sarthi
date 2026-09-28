@@ -6,6 +6,7 @@ use App\Models\GuideProfile;
 use App\Models\Hospital;
 use App\Models\Booking;
 use App\Models\Commission;
+use App\Models\Payment;
 use App\Models\Review;
 use App\Models\Service;
 use App\Models\User;
@@ -18,6 +19,47 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AdminController extends Controller
 {
+    public function manage(Request $request, string $section)
+    {
+        $cityOptions = collect(['Bhopal', 'Lucknow'])
+            ->merge(Hospital::query()->distinct()->orderBy('city')->pluck('city'))
+            ->filter()
+            ->unique(fn ($city) => mb_strtolower($city))
+            ->sort()
+            ->values();
+
+        $data = match ($section) {
+            'users' => ['users' => User::query()->with('guideProfile')->latest()->paginate(20)->withQueryString()],
+            'guides' => [
+                'guides' => GuideProfile::with(['user', 'hospitals', 'availabilities'])->latest()->paginate(20)->withQueryString(),
+                'hospitals' => Hospital::orderBy('name')->get(),
+            ],
+            'hospitals' => [
+                'hospitals' => Hospital::query()
+                    ->when($request->filled('city'), fn ($query) => $query->where('city', $request->query('city')))
+                    ->orderBy('name')->paginate(20)->withQueryString(),
+                'cityOptions' => $cityOptions,
+                'cityFilter' => $request->query('city', ''),
+            ],
+            'services' => ['services' => Service::query()->orderBy('name')->paginate(20)->withQueryString()],
+            'bookings' => [
+                'bookings' => Booking::query()->with(['patient', 'guideProfile.user', 'hospital', 'payments'])
+                    ->when($request->filled('booking_status'), fn ($query) => $query->where('status', $request->string('booking_status')))
+                    ->when($request->filled('city'), fn ($query) => $query->whereHas('hospital', fn ($hospital) => $hospital->where('city', $request->query('city'))))
+                    ->latest()->paginate(20)->withQueryString(),
+                'bookingStatus' => $request->query('booking_status', ''),
+                'cityOptions' => $cityOptions,
+                'cityFilter' => $request->query('city', ''),
+            ],
+            'payments' => ['payments' => Payment::query()->with(['booking.patient', 'booking.hospital'])->latest()->paginate(25)->withQueryString()],
+            'reviews' => ['reviews' => Review::query()->with(['booking.patient', 'booking.guideProfile.user', 'booking.hospital'])->latest()->paginate(20)->withQueryString()],
+            'commission' => ['commission' => Commission::query()->where('is_active', true)->latest()->first()],
+            default => abort(404),
+        };
+
+        return view('admin.manage', ['section' => $section] + $data);
+    }
+
     public function storeUser(Request $request): RedirectResponse
     {
         User::create($request->validate([
@@ -36,6 +78,7 @@ class AdminController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
+            'city' => ['required', 'string', 'max:120'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
@@ -43,6 +86,7 @@ class AdminController extends Controller
             $user = User::create($details + ['role' => 'guide']);
             GuideProfile::create([
                 'user_id' => $user->id,
+                'city' => $details['city'],
                 'status' => 'pending',
                 'is_verified' => false,
                 'is_available' => false,
@@ -58,6 +102,7 @@ class AdminController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$guideProfile->user_id],
             'phone' => ['nullable', 'string', 'max:30'],
+            'city' => ['required', 'string', 'max:120'],
             'bio' => ['nullable', 'string', 'max:1200'],
             'languages' => ['nullable', 'string', 'max:200'],
             'years_experience' => ['required', 'integer', 'min:0', 'max:60'],
@@ -88,6 +133,7 @@ class AdminController extends Controller
                 'phone' => $validated['phone'] ?? null,
             ]);
             $guideProfile->update([
+                'city' => $validated['city'],
                 'bio' => $validated['bio'] ?? null,
                 'languages' => array_values(array_filter(array_map('trim', explode(',', $validated['languages'] ?? '')))),
                 'years_experience' => $validated['years_experience'],

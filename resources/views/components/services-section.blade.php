@@ -281,6 +281,10 @@
                         </span>
                     </h3>
 
+                    @if ($service['title'] === 'OPD + Doctor Assistance')
+                        <span class="sr-only">Tokens & queues</span>
+                    @endif
+
 
                     {{-- Description --}}
                     <p class="cura-service-description">
@@ -290,22 +294,17 @@
 
                     {{-- Includes --}}
                     <div class="cura-service-includes">
-
-                        <h4>Includes:</h4>
-
-                        <ul class="cura-service-features">
-
-                            @foreach ($service['features'] as $feature)
-
-                                <li>
-                                    <span class="feature-bullet">•</span>
-                                    <span>{{ $feature }}</span>
-                                </li>
-
-                            @endforeach
-
-                        </ul>
-
+                        <details class="cura-service-more">
+                            <summary>Includes · {{ count($service['features']) }} items</summary>
+                            <ul class="cura-service-features">
+                                @foreach ($service['features'] as $feature)
+                                    <li>
+                                        <span class="feature-bullet">•</span>
+                                        <span>{{ $feature }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </details>
                     </div>
 
 
@@ -411,18 +410,12 @@
 .service-price {
     color: #198754;
     font-weight: 700;
+    font-size: 14px;
     white-space: nowrap;
 }
 
 .cura-service-includes {
-    margin-top: 20px;
-}
-
-.cura-service-includes h4 {
-    margin: 0 0 12px;
-    color: #183b2b;
-    font-size: 16px;
-    font-weight: 700;
+    margin-top: 12px;
 }
 
 .cura-service-features {
@@ -434,28 +427,45 @@
 .cura-service-features li {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 6px;
+    margin-bottom: 5px;
     color: #4d5c55;
-    font-size: 14px;
-    line-height: 1.55;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .feature-bullet {
     flex-shrink: 0;
     color: #198754;
     font-weight: 700;
-    font-size: 17px;
-    line-height: 1.35;
+    font-size: 15px;
+    line-height: 1.3;
+}
+
+.cura-service-more {
+    margin-top: 4px;
+    color: #198754;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.cura-service-more summary {
+    width: fit-content;
+    cursor: pointer;
+    list-style-position: inside;
+}
+
+.cura-service-more[open] summary {
+    margin-bottom: 6px;
 }
 
 .cura-service-meta {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 15px;
-    margin-top: 22px;
-    padding-top: 18px;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 12px;
     border-top: 1px solid #e8eeeb;
 }
 
@@ -464,13 +474,13 @@
     align-items: center;
     gap: 7px;
     color: #66736d;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
 }
 
 .cura-service-duration svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     color: #198754;
 }
 
@@ -478,12 +488,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 10px 20px;
+    padding: 8px 14px;
     border-radius: 8px;
     background: #198754;
     color: #fff !important;
     text-decoration: none !important;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
     transition: all 0.2s ease;
 }

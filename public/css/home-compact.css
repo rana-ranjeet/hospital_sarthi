@@ -1,0 +1,105 @@
+ .cura-hero-inner {
+    min-height: 0;
+}
+
+@media (max-width: 680px) {
+    .cura-hero-inner {
+        min-height: 0;
+        gap: 18px;
+        padding: 32px 0 24px;
+    }
+
+    .cura-hero h1 {
+        margin-top: 14px;
+        font-size: 36px;
+    }
+
+    .cura-lede {
+        margin-top: 14px;
+    }
+
+    .cura-actions {
+        margin-top: 17px;
+    }
+
+    .cura-proof {
+        margin-top: 17px;
+    }
+
+    .cura-hero-visual > img {
+        aspect-ratio: 1.28;
+        max-height: 290px;
+    }
+
+    .cura-stats {
+        padding-block: 14px;
+    }
+
+    .cura-stat {
+        height: 92px;
+        padding: 8px;
+    }
+
+    .cura-stat-value {
+        font-size: 25px;
+    }
+
+    .cura-stat-label {
+        margin-top: 5px;
+    }
+
+    .cura-services {
+        padding-block: 34px;
+    }
+
+    .cura-services-heading {
+        gap: 12px;
+        margin-bottom: 17px;
+    }
+
+    .cura-home main > section.py-20,
+    .cura-home main > section.py-16 {
+        padding-block: 38px;
+    }
+
+    .cura-home main > section.py-8 {
+        padding-block: 22px;
+    }
+
+    .cura-home main > section.pb-14 {
+        padding-bottom: 32px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 > div > .mb-12 {
+        margin-bottom: 23px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 .grid.grid-cols-1 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 10px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 .grid.grid-cols-1 > div {
+        padding-inline: 4px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 .grid.grid-cols-1 > div > span {
+        width: 48px;
+        height: 48px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 .grid.grid-cols-1 h3 {
+        margin-top: 10px;
+        font-size: 14px;
+    }
+
+    .cura-home .bg-gradient-to-b.from-sky-50.to-white.py-16 .grid.grid-cols-1 p {
+        margin-top: 4px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    .cura-home .cura-section {
+        padding-block: 34px;
+    }
+}

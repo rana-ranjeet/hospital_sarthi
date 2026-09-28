@@ -1,0 +1,99 @@
+.account-profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #29483b;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.account-profile-link:hover {
+    color: #126c55;
+}
+
+.account-profile-avatar {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    overflow: hidden;
+    place-items: center;
+    border: 1px solid #d9e7df;
+    border-radius: 50%;
+    background: #edf4ef;
+    color: #17684f;
+}
+
+.account-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.account-profile-avatar svg {
+    width: 19px;
+    height: 19px;
+}
+
+.account-profile-name {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.google-auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0;
+    color: #87938d;
+    font-size: 11px;
+}
+
+.google-auth-divider::before,
+.google-auth-divider::after {
+    height: 1px;
+    flex: 1;
+    background: #e3e9e5;
+    content: "";
+}
+
+.google-auth-button {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid #d6ded9;
+    border-radius: 5px;
+    background: #fff;
+    color: #273c32;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color .15s ease, border-color .15s ease;
+}
+
+.google-auth-button:hover {
+    border-color: #aebdb4;
+    background: #f7faf8;
+    color: #173e30;
+}
+
+.google-auth-mark {
+    color: #4285f4;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+@media (max-width: 640px) {
+    .cura-header-actions .account-profile-name {
+        display: none;
+    }
+
+    .portal-nav-right .account-profile-name {
+        display: none;
+    }
+}

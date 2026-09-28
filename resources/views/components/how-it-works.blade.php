@@ -10,8 +10,8 @@
             </p>
 
             <h2>
-                How It Works
-            </h2>
+    How It Works
+</h2>
 
             <p>
                 Choose a service, book your companion, and make your hospital visit easier.
@@ -174,6 +174,7 @@
 
     </div>
 
+    </section>
 
 
 <style>
@@ -183,7 +184,7 @@
 ========================================= */
 
 .how-it-works-section {
-    padding: 85px 20px;
+    /* padding: 85px 20px; */
     background: #f7faf8;
 }
 
@@ -430,11 +431,11 @@
 @media (max-width: 700px) {
 
     .how-it-works-section {
-        padding: 65px 16px;
+        padding: 38px 16px;
     }
 
     .how-it-works-heading {
-        margin-bottom: 35px;
+        margin-bottom: 22px;
     }
 
     .how-it-works-heading h2 {
@@ -443,22 +444,22 @@
 
     .how-it-works-grid {
         grid-template-columns: 1fr;
-        gap: 15px;
+        gap: 10px;
     }
 
     .how-it-works-card {
-        padding: 28px 24px;
+        padding: 18px 16px;
     }
 
     .how-it-works-bottom {
-        margin-top: 25px;
-        padding: 20px;
+        margin-top: 16px;
+        padding: 16px;
     }
 
     .how-it-works-bottom-content {
         flex-direction: column;
         align-items: center;
-        gap: 16px;
+        gap: 10px;
     }
 
     .how-it-works-button {

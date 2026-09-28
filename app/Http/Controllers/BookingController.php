@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\GuideProfile;
 use App\Models\Hospital;
 use App\Models\Service;
+use App\Rules\ValidMobileNumber;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,25 +22,54 @@ class BookingController extends Controller
     {
         abort_unless($request->user()->role === 'patient', 403);
 
-        $isModalRequest = $request->hasAny(['service_id', 'guide_id', 'date', 'time', 'patient_name', 'mobile', 'note']);
-        $mobile = $this->normalizeIndianMobile($request->input('mobile', $request->user()->phone));
+        $isModalRequest = $request->hasAny([
+            'service_id', 'guide_id', 'date', 'time', 'patient_name', 'mobile', 'mobile_number', 'note',
+            'alternate_mobile_number', 'age', 'gender', 'blood_group', 'relationship_with_patient',
+        ]);
+        $user = $request->user();
+        $mobileCountryCode = (string) $request->input('mobile_country_code', $user->mobile_country_code ?: '+91');
+        $alternateCountryCode = (string) $request->input('alternate_country_code', $user->alternate_country_code ?: '+91');
+        $mobileInputField = $request->exists('mobile_number') ? 'mobile_number' : 'mobile';
+        $mobileNumber = $request->input('mobile_number', $request->input('mobile'));
+        if ($mobileNumber === null) {
+            $mobileNumber = $user->mobile_number ?: $this->normalizeIndianMobile($user->phone);
+        } elseif ($mobileInputField === 'mobile') {
+            $mobileNumber = $this->normalizeIndianMobile($mobileNumber);
+        }
 
         $request->merge([
             'guide_profile_id' => $request->input('guide_id', $request->input('guide_profile_id')),
             'visit_date' => $request->input('date', $request->input('visit_date')),
             'start_time' => $request->input('time', $request->input('start_time')),
             'message' => $request->input('note', $request->input('message')),
-            'patient_name' => $request->input('patient_name', $request->user()->name),
-            'mobile' => $mobile,
+            'patient_name' => $request->input('patient_name', $user->name),
+            $mobileInputField => $mobileNumber,
+            'mobile_country_code' => $mobileCountryCode,
+            'alternate_country_code' => $alternateCountryCode,
+            'alternate_mobile_number' => $request->input('alternate_mobile_number', $user->alternate_mobile_number),
+            'age' => $request->input('age', $user->age),
+            'gender' => $request->input('gender', $user->gender),
+            'blood_group' => $request->input('blood_group', $user->blood_group),
+            'relationship_with_patient' => $request->input('relationship_with_patient', $user->relationship_with_patient ?: 'Self'),
+            'other_relationship' => $request->input('other_relationship', $user->other_relationship),
         ]);
 
+        $countryCodes = array_keys(config('patient.country_calling_codes'));
         $validator = Validator::make($request->all(), [
             'hospital_id' => ['required', 'integer', 'exists:hospitals,id'],
             'guide_profile_id' => ['required', 'integer', 'exists:guide_profiles,id'],
             'service_id' => ['nullable', 'required_without:service', 'integer', Rule::exists('services', 'id')->where('is_active', true)],
             'service' => ['nullable', 'required_without:service_id', 'string', Rule::exists('services', 'name')->where('is_active', true)],
             'patient_name' => [$isModalRequest ? 'required' : 'nullable', 'string', 'max:120'],
-            'mobile' => [$isModalRequest ? 'required' : 'nullable', 'regex:/^[6-9][0-9]{9}$/'],
+            'mobile_country_code' => ['required', 'string', Rule::in($countryCodes)],
+            $mobileInputField => [$isModalRequest ? 'required' : 'nullable', 'string', 'regex:/^\d+$/', new ValidMobileNumber($mobileCountryCode)],
+            'alternate_country_code' => ['required', 'string', Rule::in($countryCodes)],
+            'alternate_mobile_number' => ['nullable', 'string', 'regex:/^\d+$/', new ValidMobileNumber($alternateCountryCode)],
+            'age' => ['nullable', 'integer', 'between:0,120'],
+            'gender' => ['nullable', Rule::in(config('patient.genders'))],
+            'blood_group' => ['nullable', Rule::in(config('patient.blood_groups'))],
+            'relationship_with_patient' => ['nullable', Rule::in(config('patient.relationships'))],
+            'other_relationship' => ['nullable', 'required_if:relationship_with_patient,Other', 'string', 'max:120'],
             'visit_date' => ['required', 'date', 'after_or_equal:today'],
             'start_time' => ['required', 'date_format:H:i'],
             'message' => ['nullable', 'string', 'max:1000'],
@@ -58,6 +88,7 @@ class BookingController extends Controller
         }
 
         $validated = $validator->validated();
+    $validated['mobile_number'] = $validated[$mobileInputField] ?? null;
 
         try {
             $booking = DB::transaction(function () use ($request, $validated) {
@@ -92,7 +123,7 @@ class BookingController extends Controller
                     ->where('guide_profile_id', $guide->id)
                     ->whereDate('visit_date', $validated['visit_date'])
                     ->where('start_time', $validated['start_time'])
-                    ->whereIn('status', ['pending', 'accepted'])
+                    ->whereIn('status', ['pending', 'accepted', 'received'])
                     ->exists();
                 if ($conflict) {
                     throw ValidationException::withMessages(['start_time' => 'That time has just been requested. Please choose another time.']);
@@ -101,7 +132,16 @@ class BookingController extends Controller
                 $booking = Booking::create([
                     'patient_id' => $request->user()->id,
                     'patient_name' => $validated['patient_name'] ?? $request->user()->name,
-                    'mobile' => $validated['mobile'] ?? null,
+                    'mobile' => $validated['mobile_country_code'] === '+91' ? $validated['mobile_number'] : null,
+                    'mobile_country_code' => $validated['mobile_country_code'],
+                    'mobile_number' => $validated['mobile_number'],
+                    'alternate_country_code' => $validated['alternate_country_code'],
+                    'alternate_mobile_number' => $validated['alternate_mobile_number'] ?? null,
+                    'age' => $validated['age'] ?? null,
+                    'gender' => $validated['gender'] ?? null,
+                    'blood_group' => $validated['blood_group'] ?? null,
+                    'relationship_with_patient' => $validated['relationship_with_patient'] ?? null,
+                    'other_relationship' => $validated['other_relationship'] ?? null,
                     'guide_profile_id' => $guide->id,
                     'hospital_id' => $hospital->id,
                     'service' => $service->name,
