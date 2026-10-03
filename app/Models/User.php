@@ -91,4 +91,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Booking::class, 'patient_id');
     }
+
+    public function rewardTransactions()
+    {
+        return $this->hasMany(CustomerRewardTransaction::class);
+    }
 }

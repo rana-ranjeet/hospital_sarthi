@@ -9,6 +9,31 @@
 
     Requires Alpine.js (https://alpinejs.dev) loaded on the page.
 --}}
+<style>
+    .guide-book-phone-field {
+        grid-column: 1 / -1;
+        min-width: 0;
+    }
+
+    .guide-book-phone-inputs {
+        display: flex;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .guide-book-phone-inputs select {
+        flex: 0 0 38%;
+        width: 38%;
+        min-width: 112px;
+        max-width: 160px;
+    }
+
+    .guide-book-phone-inputs input {
+        flex: 1 1 0;
+        width: 0;
+        min-width: 0;
+    }
+</style>
 <div
     x-data="bookGuideModal()"
     x-on:open-book-guide-modal.window="open()"
@@ -176,18 +201,18 @@
                         <label class="guide-book-modal-label mb-1.5 block text-sm font-semibold text-slate-900" for="booking-patient-name">Patient name</label>
                         <input id="booking-patient-name" type="text" x-model="form.patientName" maxlength="120" placeholder="Full name" class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
                     </div>
-                    <div>
+                    <div class="guide-book-phone-field">
                         <label class="guide-book-modal-label mb-1.5 block text-sm font-semibold text-slate-900" for="booking-mobile-number">Mobile number</label>
-                        <div class="flex gap-2">
-                            @include('components.country-code-select', ['name' => 'mobile_country_code', 'id' => 'booking-mobile-country-code', 'xModel' => 'form.mobileCountryCode', 'class' => 'w-40 shrink-0 rounded-lg border border-slate-300 px-2 py-2.5 text-sm text-slate-800'])
-                            <input id="booking-mobile-number" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="15" data-digits-only x-model="form.mobileNumber" placeholder="Mobile number" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        <div class="guide-book-phone-inputs">
+                            @include('components.country-code-select', ['name' => 'mobile_country_code', 'id' => 'booking-mobile-country-code', 'xModel' => 'form.mobileCountryCode', 'class' => 'w-32 shrink-0 rounded-lg border border-slate-300 px-2 py-2.5 text-sm text-slate-800'])
+                            <input id="booking-mobile-number" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="tel-national" data-digits-only x-model="form.mobileNumber" placeholder="Mobile number" class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
                         </div>
                     </div>
-                    <div>
+                    <div class="guide-book-phone-field">
                         <label class="guide-book-modal-label mb-1.5 block text-sm font-semibold text-slate-900" for="booking-alternate-mobile-number">Alternative mobile <span class="font-normal text-slate-500">(optional)</span></label>
-                        <div class="flex gap-2">
-                            @include('components.country-code-select', ['name' => 'alternate_country_code', 'id' => 'booking-alternate-country-code', 'xModel' => 'form.alternateCountryCode', 'class' => 'w-40 shrink-0 rounded-lg border border-slate-300 px-2 py-2.5 text-sm text-slate-800'])
-                            <input id="booking-alternate-mobile-number" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="15" data-digits-only x-model="form.alternateMobileNumber" placeholder="Alternative number" class="min-w-0 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                        <div class="guide-book-phone-inputs">
+                            @include('components.country-code-select', ['name' => 'alternate_country_code', 'id' => 'booking-alternate-country-code', 'xModel' => 'form.alternateCountryCode', 'class' => 'w-32 shrink-0 rounded-lg border border-slate-300 px-2 py-2.5 text-sm text-slate-800'])
+                            <input id="booking-alternate-mobile-number" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" data-digits-only x-model="form.alternateMobileNumber" placeholder="Alternative number" class="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500">
                         </div>
                     </div>
                     <div>
@@ -260,7 +285,7 @@
                         <p class="text-sm text-slate-500" x-text="selectedService?.label"></p>
                     </div>
                     <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700">
-                        <span x-text="bookingStatus === 'success' ? 'Request sent' : 'Request pending'"></span>
+                        <span x-text="bookingStatus === 'accepted' ? 'Confirmed' : (bookingStatus === 'expired' ? 'Expired' : (bookingStatus === 'rejected' ? 'Declined' : 'Awaiting guide'))"></span>
                     </span>
                 </div>
 
@@ -293,9 +318,22 @@
                     </div>
                 </div>
 
-                <div x-show="bookingStatus === 'success'" class="mt-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-800" role="status">
+                <div x-show="bookingStatus === 'pending'" class="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900" role="status" aria-live="polite">
                     <p x-text="bookingMessage"></p>
                     <p class="mt-1 font-semibold" x-text="'Booking ID: ' + bookingId"></p>
+                    <p class="mt-1">Waiting for guide response: <strong x-text="formattedResponseCountdown"></strong></p>
+                </div>
+
+                <div x-show="bookingStatus === 'accepted'" class="mt-3 rounded-lg bg-teal-50 p-3 text-sm text-teal-800" role="status" aria-live="polite">
+                    <p class="font-semibold" x-text="bookingMessage"></p>
+                    <p class="mt-1" x-text="'Guide: ' + (guideContact?.name || selectedGuide?.name || '')"></p>
+                    <p x-show="guideContact?.phone" x-text="'Phone: ' + guideContact.phone"></p>
+                    <a x-show="guideContact?.whatsapp_url" :href="guideContact?.whatsapp_url" target="_blank" rel="noopener noreferrer" class="mt-2 inline-flex font-semibold text-teal-800 underline">Message on WhatsApp</a>
+                    <p class="mt-1 font-semibold" x-text="'Booking ID: ' + bookingId"></p>
+                </div>
+
+                <div x-show="bookingStatus === 'expired' || bookingStatus === 'rejected'" class="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800" role="status" aria-live="polite">
+                    <p x-text="bookingMessage"></p>
                 </div>
 
                 <p x-show="errors.step3" x-text="errors.step3" class="mt-3 text-sm text-red-600 text-center"></p>
@@ -308,13 +346,13 @@
                 <button
                     type="button"
                     x-on:click="pay()"
-                    :disabled="bookingStatus === 'processing' || bookingStatus === 'success'"
+                    :disabled="bookingStatus === 'processing' || bookingStatus === 'pending' || bookingStatus === 'accepted'"
                     class="guide-book-action mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-teal-600 py-3 font-semibold text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6" />
                     </svg>
-                    <span x-text="bookingStatus === 'processing' ? 'Sending your request…' : (bookingStatus === 'success' ? 'Request sent' : 'Send booking request')"></span>
+                    <span x-text="bookingStatus === 'processing' ? 'Sending your request…' : (bookingStatus === 'pending' ? 'Waiting for guide…' : (bookingStatus === 'accepted' ? 'Booking confirmed' : 'Send booking request'))"></span>
                 </button>
 
                 <p class="mt-3 text-center text-xs text-slate-400">Payment status remains pending until a payment provider is connected.</p>
@@ -348,6 +386,11 @@
                     bookingStatus: 'idle',
                     bookingId: null,
                     bookingMessage: '',
+                    bookingSecondsRemaining: 120,
+                    bookingDeadline: null,
+                    bookingCountdownTimer: null,
+                    bookingStatusPoll: null,
+                    guideContact: null,
                     needsLogin: false,
                     errors: {},
                     cities: @json($cityOptions ?? []),
@@ -389,10 +432,19 @@
 
                     open() {
                         this.isOpen = true;
+                        if (this.bookingStatus === 'pending') {
+                            this.step = 3;
+                            return;
+                        }
+
+                        this.stopBookingTracking();
                         this.step = 1;
                         this.bookingStatus = 'idle';
                         this.bookingId = null;
                         this.bookingMessage = '';
+                        this.bookingSecondsRemaining = 120;
+                        this.bookingDeadline = null;
+                        this.guideContact = null;
                         this.needsLogin = false;
                         this.errors = {};
                         this.selectedCity = '';
@@ -405,6 +457,57 @@
 
                     close() {
                         this.isOpen = false;
+                    },
+
+                    get formattedResponseCountdown() {
+                        const minutes = Math.floor(this.bookingSecondsRemaining / 60);
+                        const seconds = String(this.bookingSecondsRemaining % 60).padStart(2, '0');
+                        return `${minutes}:${seconds}`;
+                    },
+
+                    stopBookingTracking() {
+                        window.clearInterval(this.bookingCountdownTimer);
+                        window.clearInterval(this.bookingStatusPoll);
+                        this.bookingCountdownTimer = null;
+                        this.bookingStatusPoll = null;
+                    },
+
+                    startBookingTracking(deadline) {
+                        this.stopBookingTracking();
+                        this.bookingDeadline = deadline;
+                        const updateCountdown = () => {
+                            this.bookingSecondsRemaining = Math.max(0, Math.ceil((Date.parse(this.bookingDeadline) - Date.now()) / 1000));
+                        };
+                        updateCountdown();
+                        this.bookingCountdownTimer = window.setInterval(updateCountdown, 1000);
+                        this.bookingStatusPoll = window.setInterval(() => this.refreshBookingStatus(), 3000);
+                        this.refreshBookingStatus();
+                    },
+
+                    async refreshBookingStatus() {
+                        if (!this.bookingId || this.bookingStatus !== 'pending') return;
+                        try {
+                            const url = `{{ route('bookings.status', ['booking' => 'BOOKING_ID']) }}`.replace('BOOKING_ID', this.bookingId);
+                            const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+                            if (!response.ok) return;
+                            const result = await response.json();
+                            this.bookingStatus = result.status;
+                            this.bookingSecondsRemaining = result.seconds_remaining ?? this.bookingSecondsRemaining;
+
+                            if (result.status === 'accepted') {
+                                this.bookingMessage = 'Your booking is confirmed. The guide accepted your request.';
+                                this.guideContact = result.guide ?? null;
+                                this.stopBookingTracking();
+                            } else if (result.status === 'expired') {
+                                this.bookingMessage = 'The guide did not respond within 2 minutes. Please send a new request.';
+                                this.stopBookingTracking();
+                            } else if (result.status === 'rejected') {
+                                this.bookingMessage = 'The guide could not accept this request. You can send another request.';
+                                this.stopBookingTracking();
+                            }
+                        } catch (error) {
+                            console.error('Could not check booking status.', error);
+                        }
                     },
 
                     get selectedService() {
@@ -461,7 +564,7 @@
                                     photo: guide.photo,
                                 }));
                                 if (this.guides.length === 0) {
-                                    this.guideSearchMessage = 'No guides are available at this hospital for the selected time. Try another date or time.';
+                                    this.guideSearchMessage = 'No verified guide has hours for this date and time. Try another date or time, or ask the admin to check this hospital’s guide city, assignment and weekly hours.';
                                 }
                                 this.step = target;
                             } catch (error) {
@@ -492,10 +595,12 @@
                     },
 
                     async pay() {
-                        if (this.bookingStatus === 'processing' || this.bookingStatus === 'success') return;
+                        if (this.bookingStatus === 'processing' || this.bookingStatus === 'pending' || this.bookingStatus === 'accepted') return;
 
+                        this.stopBookingTracking();
                         this.errors = {};
                         this.needsLogin = false;
+                        this.guideContact = null;
                         this.bookingStatus = 'processing';
 
                         try {
@@ -539,8 +644,9 @@
                             }
 
                             this.bookingId = result.booking_id;
-                            this.bookingMessage = result.message;
-                            this.bookingStatus = 'success';
+                            this.bookingMessage = 'Your request was sent to the guide.';
+                            this.bookingStatus = 'pending';
+                            this.startBookingTracking(result.response_deadline);
                         } catch (error) {
                             this.bookingStatus = 'failed';
                             this.errors.step3 = error.message || 'We could not create that booking. Please try another time.';

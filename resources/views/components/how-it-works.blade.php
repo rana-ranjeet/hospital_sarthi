@@ -159,7 +159,7 @@
 
 
                 <a
-                    href="https://wa.me/919522104158?text={{ urlencode('Hello Hospital Sarthi, I need help choosing the right assistance plan.') }}"
+                    href="https://wa.me/919522104158?text={{ urlencode('Hello AapkaSarthi, I need help choosing the right assistance plan.') }}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="how-it-works-button"

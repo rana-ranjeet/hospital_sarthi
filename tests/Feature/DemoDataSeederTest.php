@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\GuideProfile;
 use App\Models\Hospital;
 use App\Models\Review;
 use App\Models\User;
@@ -21,6 +22,7 @@ class DemoDataSeederTest extends TestCase
 
         $this->assertSame(1, User::where('role', 'admin')->count());
         $this->assertSame(10, User::where('role', 'guide')->count());
+        $this->assertSame(0, GuideProfile::whereNull('city')->count());
         $this->assertSame(20, User::where('role', 'patient')->count());
         $this->assertSame(5, Hospital::count());
         $this->assertSame(20, Booking::count());

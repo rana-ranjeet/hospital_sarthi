@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -72,9 +73,43 @@ class GuideController extends Controller
         return back()->with('status', 'Your guide profile and availability were updated. Verification is managed by our admin team.');
     }
 
-    public function respond(Request $request, Booking $booking): RedirectResponse
+    public function pendingNotifications(Request $request): JsonResponse
+    {
+        $profile = $request->user()->guideProfile;
+        abort_unless($profile, 404);
+
+        Booking::expirePendingResponses();
+
+        $requests = $profile->bookings()
+            ->with(['hospital:id,name', 'patient:id,name'])
+            ->where('status', 'pending')
+            ->whereNotNull('response_deadline')
+            ->where('response_deadline', '>', now())
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Booking $booking) => [
+                'id' => $booking->id,
+                'patient_name' => $booking->patient_name ?: $booking->patient?->name,
+                'hospital' => $booking->hospital?->name,
+                'service' => $booking->service,
+                'visit_date' => $booking->visit_date->format('D, d M Y'),
+                'start_time' => substr($booking->start_time, 0, 5),
+                'message' => $booking->message,
+                'response_deadline' => $booking->response_deadline->toIso8601String(),
+            ]);
+
+        return response()->json(['requests' => $requests]);
+    }
+
+    public function respond(Request $request, Booking $booking): JsonResponse|RedirectResponse
     {
         abort_unless($booking->guide_profile_id === $request->user()->guideProfile?->id, 403);
+
+        if ($booking->status === 'pending' && $booking->response_deadline?->isPast()) {
+            $booking->update(['status' => 'expired']);
+
+            return back()->with('status', 'This booking request has expired.');
+        }
 
         $validated = $request->validate(['status' => ['required', 'in:accepted,rejected,received']]);
         $allowedTransition = $booking->status === 'pending' && in_array($validated['status'], ['accepted', 'rejected'], true)
@@ -87,6 +122,10 @@ class GuideController extends Controller
             'rejected' => 'Booking request declined.',
             'received' => 'You have been marked as arrived.',
         };
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'status' => $validated['status'], 'message' => $message]);
+        }
 
         return back()->with('status', $message);
     }

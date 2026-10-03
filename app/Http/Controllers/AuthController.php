@@ -38,7 +38,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('home');
     }
 
     public function redirectToGoogle(Request $request): RedirectResponse
@@ -111,7 +111,7 @@ class AuthController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route('home');
     }
 
     public function register(Request $request): RedirectResponse

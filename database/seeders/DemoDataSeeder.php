@@ -105,6 +105,8 @@ class DemoDataSeeder extends Seeder
 
         foreach (self::GUIDE_NAMES as $index => $name) {
             $number = $index + 1;
+            $primaryHospital = $hospitals[$index % count($hospitals)];
+            $secondaryHospital = $hospitals[($index + 1) % count($hospitals)];
             $user = User::updateOrCreate(
                 ['email' => sprintf('guide%02d@example.test', $number)],
                 [
@@ -118,6 +120,7 @@ class DemoDataSeeder extends Seeder
             $profile = GuideProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
+                    'city' => $primaryHospital->city,
                     'bio' => 'Experienced hospital companion offering practical, non-medical visit support.',
                     'languages' => ['English', 'Hindi'],
                     'years_experience' => 2 + ($number % 8),
@@ -127,8 +130,6 @@ class DemoDataSeeder extends Seeder
                 ]
             );
 
-            $primaryHospital = $hospitals[$index % count($hospitals)];
-            $secondaryHospital = $hospitals[($index + 1) % count($hospitals)];
             $profile->hospitals()->syncWithoutDetaching([$primaryHospital->id, $secondaryHospital->id]);
 
             for ($weekday = 1; $weekday <= 5; $weekday++) {

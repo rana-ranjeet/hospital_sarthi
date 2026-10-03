@@ -30,6 +30,22 @@ class HospitalSarthiTest extends TestCase
             ->assertSee('Not medical care or advice.', false);
     }
 
+    public function test_get_logout_redirects_safely_while_post_logout_ends_the_session(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get(route('logout'))
+            ->assertRedirect(route('home'));
+
+        $this->assertAuthenticatedAs($user);
+
+        $this->post(route('logout'))
+            ->assertRedirect(route('home'));
+
+        $this->assertGuest();
+    }
+
     public function test_google_sign_in_is_offered_and_signed_in_users_see_their_profile_icon(): void
     {
         $this->get(route('login'))
@@ -99,7 +115,7 @@ class HospitalSarthiTest extends TestCase
 
         $this->withSession(['google_signup_role' => 'guide'])
             ->get(route('auth.google.callback'))
-            ->assertRedirect(route('dashboard'));
+            ->assertRedirect(route('home'));
 
         $guide = User::where('email', 'google-guide@example.test')->firstOrFail();
         $this->assertAuthenticatedAs($guide);
@@ -124,7 +140,7 @@ class HospitalSarthiTest extends TestCase
         $provider->shouldReceive('user')->once()->andReturn($googleUser);
         Socialite::shouldReceive('driver')->once()->with('google')->andReturn($provider);
 
-        $this->get(route('auth.google.callback'))->assertRedirect(route('dashboard'));
+        $this->get(route('auth.google.callback'))->assertRedirect(route('home'));
 
         $this->assertAuthenticatedAs($patient);
         $this->assertDatabaseHas('users', ['id' => $patient->id, 'google_id' => 'google-existing-123']);
@@ -138,6 +154,20 @@ class HospitalSarthiTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('serviceId: '.$service->id, false);
+    }
+
+    public function test_successful_login_redirects_to_homepage_even_with_intended_dashboard(): void
+    {
+        $user = User::factory()->create(['email' => 'login-home@example.test']);
+
+        $this->withSession(['url.intended' => route('dashboard')])
+            ->post(route('login.store'), [
+                'email' => $user->email,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('home'));
+
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_hospital_api_only_returns_matching_active_hospitals(): void
@@ -171,6 +201,9 @@ class HospitalSarthiTest extends TestCase
         $otherCityGuideUser = User::factory()->create(['role' => 'guide']);
         $otherCityGuide = GuideProfile::create(['user_id' => $otherCityGuideUser->id, 'city' => 'Bhopal', 'is_verified' => true, 'is_available' => true]);
         $otherCityGuide->hospitals()->attach($hospital);
+        $legacyGuideUser = User::factory()->create(['role' => 'guide']);
+        $legacyGuide = GuideProfile::create(['user_id' => $legacyGuideUser->id, 'is_verified' => true, 'is_available' => true]);
+        $legacyGuide->hospitals()->attach($hospital);
         $visitDate = Carbon::today()->next(Carbon::MONDAY);
         GuideAvailability::create([
             'guide_profile_id' => $guide->id,
@@ -184,6 +217,12 @@ class HospitalSarthiTest extends TestCase
             'start_time' => '09:00',
             'end_time' => '12:00',
         ]);
+        GuideAvailability::create([
+            'guide_profile_id' => $legacyGuide->id,
+            'weekday' => $visitDate->dayOfWeek,
+            'start_time' => '09:00',
+            'end_time' => '12:00',
+        ]);
 
         $this->getJson('/api/guides?'.http_build_query([
             'hospital_id' => $hospital->id,
@@ -191,8 +230,10 @@ class HospitalSarthiTest extends TestCase
             'time' => '10:00',
         ]))
             ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.id', $guide->id);
+            ->assertJsonCount(3)
+            ->assertJsonFragment(['id' => $guide->id])
+            ->assertJsonFragment(['id' => $otherCityGuide->id])
+            ->assertJsonFragment(['id' => $legacyGuide->id]);
 
         $this->getJson('/api/guides?'.http_build_query([
             'hospital_id' => $hospital->id,
@@ -508,6 +549,34 @@ class HospitalSarthiTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $guideUser->id, 'name' => 'Attempted Change']);
     }
 
+    public function test_assigned_guide_is_listed_even_when_profile_city_text_differs(): void
+    {
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $guideUser = User::factory()->create(['role' => 'guide', 'name' => 'Assigned Guide']);
+        $guide = GuideProfile::create([
+            'user_id' => $guideUser->id,
+            'city' => 'pune',
+            'is_verified' => true,
+            'is_available' => true,
+            'years_experience' => 4,
+        ]);
+        $guide->hospitals()->attach($hospital);
+        $date = Carbon::now()->next(Carbon::MONDAY)->toDateString();
+        $guide->availabilities()->create([
+            'weekday' => Carbon::parse($date)->dayOfWeek,
+            'start_time' => '09:00',
+            'end_time' => '13:00',
+        ]);
+
+        $this->getJson(route('api.guides.index', [
+            'hospital_id' => $hospital->id,
+            'date' => $date,
+            'time' => '10:00',
+        ]))
+            ->assertOk()
+            ->assertJsonFragment(['id' => $guide->id, 'name' => 'Assigned Guide']);
+    }
+
     public function test_admin_can_create_patient_and_guide_accounts(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
@@ -687,6 +756,8 @@ class HospitalSarthiTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('status', 'pending')
+            ->assertJsonPath('seconds_remaining', 120)
             ->assertJsonPath('message', 'Booking created successfully. Payment is pending; no payment was collected.');
 
         $bookingId = $response->json('booking_id');
@@ -715,7 +786,74 @@ class HospitalSarthiTest extends TestCase
         $this->assertSame($visitDate->toDateString(), $booking->visit_date->toDateString());
         $this->assertSame('10:00', substr($booking->start_time, 0, 5));
         $this->assertSame('425.00', $booking->amount);
+        $this->assertTrue($booking->response_deadline->between(now()->addMinute(), now()->addMinutes(2)));
         $this->assertDatabaseHas('booking_services', ['booking_id' => $bookingId, 'service_id' => $service->id]);
+    }
+
+    public function test_guide_can_accept_request_and_patient_receives_guide_contact(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $guideUser = User::factory()->create(['role' => 'guide', 'name' => 'Guide One', 'phone' => '9000000000']);
+        $guide = GuideProfile::create(['user_id' => $guideUser->id]);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $booking = Booking::create([
+            'patient_id' => $patient->id,
+            'patient_name' => 'Patient One',
+            'guide_profile_id' => $guide->id,
+            'hospital_id' => $hospital->id,
+            'service' => 'OPD registration',
+            'visit_date' => Carbon::tomorrow()->toDateString(),
+            'start_time' => '10:00',
+            'status' => 'pending',
+            'response_deadline' => now()->addMinutes(2),
+        ]);
+
+        $this->actingAs($guideUser)
+            ->getJson(route('guide.bookings.notifications'))
+            ->assertOk()
+            ->assertJsonPath('requests.0.id', $booking->id)
+            ->assertJsonPath('requests.0.patient_name', 'Patient One');
+
+        $this->patchJson(route('guide.bookings.respond', $booking), ['status' => 'accepted'])
+            ->assertOk()
+            ->assertJsonPath('status', 'accepted');
+
+        $response = $this->actingAs($patient)
+            ->getJson(route('bookings.status', $booking))
+            ->assertOk()
+            ->assertJsonPath('status', 'accepted')
+            ->assertJsonPath('guide.name', 'Guide One')
+            ->assertJsonPath('guide.phone', '9000000000');
+
+        $this->assertSame(
+            'https://wa.me/919000000000?text='.rawurlencode('Hi, my booking #'.$booking->id.' was accepted. I am contacting you about the visit.'),
+            $response->json('guide.whatsapp_url'),
+        );
+    }
+
+    public function test_pending_booking_expires_after_its_response_deadline(): void
+    {
+        $patient = User::factory()->create(['role' => 'patient']);
+        $guide = GuideProfile::create(['user_id' => User::factory()->create(['role' => 'guide'])->id]);
+        $hospital = Hospital::create(['name' => 'Northside Hospital', 'city' => 'Pune', 'address' => 'North Road']);
+        $booking = Booking::create([
+            'patient_id' => $patient->id,
+            'guide_profile_id' => $guide->id,
+            'hospital_id' => $hospital->id,
+            'service' => 'OPD registration',
+            'visit_date' => Carbon::tomorrow()->toDateString(),
+            'start_time' => '10:00',
+            'status' => 'pending',
+            'response_deadline' => now()->subSecond(),
+        ]);
+
+        $this->actingAs($patient)
+            ->getJson(route('bookings.status', $booking))
+            ->assertOk()
+            ->assertJsonPath('status', 'expired')
+            ->assertJsonPath('seconds_remaining', 0);
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'expired']);
     }
 
     public function test_modal_booking_rejects_invalid_mobile_and_past_visit_date(): void

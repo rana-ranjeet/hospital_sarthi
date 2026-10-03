@@ -13,7 +13,7 @@
         'reviews' => 'bi-chat-square-text', 'commission' => 'bi-graph-up-arrow',
     ];
 @endphp
-<div class="dashboard-heading"><div><div class="eyebrow"><span></span> Admin workspace</div><h1>{{ $sectionTitles[$section] }}</h1><p>Manage {{ strtolower($sectionTitles[$section]) }} for Hospital Sarthi.</p></div><a class="btn btn-outline-secondary btn-sm" href="{{ route('dashboard') }}"><i class="bi bi-arrow-left me-1"></i> Admin dashboard</a></div>
+<div class="dashboard-heading"><div><div class="eyebrow"><span></span> Admin workspace</div><h1>{{ $sectionTitles[$section] }}</h1><p>Manage {{ strtolower($sectionTitles[$section]) }} for AapkaSarthi.</p></div><a class="btn btn-outline-secondary btn-sm" href="{{ route('dashboard') }}"><i class="bi bi-arrow-left me-1"></i> Admin dashboard</a></div>
 <nav class="d-flex flex-wrap gap-2 mb-4" aria-label="Admin sections">@foreach($sectionTitles as $key => $title)<a class="btn btn-sm {{ $section === $key ? 'btn-forest' : 'btn-outline-secondary' }}" href="{{ route('admin.manage', $key) }}">{{ $title }}</a>@endforeach</nav>
 
 @if($section === 'users')

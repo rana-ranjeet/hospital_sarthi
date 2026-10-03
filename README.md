@@ -1,4 +1,4 @@
-# Hospital Sarthi
+# AapkaSarthi
 
 A Laravel 10 patient-companion booking platform for practical, non-medical help inside a hospital. Guides can assist with navigation, registration, queues, test-centre locations, billing, pharmacy, reports and discharge steps. They do not diagnose, treat or provide medical advice.
 

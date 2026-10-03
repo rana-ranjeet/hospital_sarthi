@@ -14,7 +14,7 @@
     ];
 @endphp
 
-<section class="cura-stats" aria-label="Hospital Sarthi statistics">
+<section class="cura-stats" aria-label="AapkaSarthi statistics">
     <div class="cura-stats-grid">
         @foreach ($stats as $stat)
             <article class="cura-stat">

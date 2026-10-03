@@ -40,4 +40,14 @@ class GuideProfile extends Model
     {
         return $this->hasMany(Booking::class);
     }
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(GuideBankAccount::class);
+    }
+
+    public function payouts(): HasMany
+    {
+        return $this->hasMany(GuidePayout::class);
+    }
 }

@@ -332,6 +332,7 @@
 
                         <button
                             type="button"
+                            x-data
                             @click="$dispatch('open-book-guide-modal')"
                             class="cura-service-book"
                         >
@@ -383,14 +384,14 @@
                 </p>
 
 
-                <a
-                    href="https://wa.me/919522104158?text={{ urlencode('Hello Hospital Sarthi, I need help choosing the right patient assistance plan.') }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <button
+                    type="button"
+                    x-data
+                    @click="$dispatch('open-book-guide-modal')"
                     class="cura-service-book"
                 >
                     Book a Companion
-                </a>
+                </button>
 
             </article>
 

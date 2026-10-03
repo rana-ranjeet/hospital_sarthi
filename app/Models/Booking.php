@@ -34,12 +34,14 @@ class Booking extends Model
         'message',
         'amount',
         'status',
+        'response_deadline',
         'payment_status',
     ];
 
     protected $casts = [
         'visit_date' => 'date',
         'amount' => 'decimal:2',
+        'response_deadline' => 'datetime',
     ];
 
     protected $hidden = [
@@ -81,8 +83,27 @@ class Booking extends Model
         return $this->belongsToMany(Service::class, 'booking_services')->withTimestamps();
     }
 
+    public static function expirePendingResponses(): int
+    {
+        return static::query()
+            ->where('status', 'pending')
+            ->whereNotNull('response_deadline')
+            ->where('response_deadline', '<=', now())
+            ->update(['status' => 'expired']);
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasManyThrough(Refund::class, Payment::class);
+    }
+
+    public function rewardTransactions(): HasMany
+    {
+        return $this->hasMany(CustomerRewardTransaction::class);
     }
 }

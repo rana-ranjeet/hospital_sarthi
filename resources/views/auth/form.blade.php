@@ -55,7 +55,7 @@
         </form>
         <div class="google-auth-divider"><span>or</span></div>
         <a id="google-auth-link" class="google-auth-button" href="{{ route('auth.google.redirect', $mode === 'register' ? ['role' => ($selectedRole ?? 'patient')] : []) }}"><span class="google-auth-mark" aria-hidden="true">G</span>{{ $mode === 'login' ? 'Continue with Google' : 'Sign up with Google' }}</a>
-        <div class="auth-switch">{{ $mode === 'login' ? 'New to Hospital Sarthi?' : 'Already have an account?' }} <a href="{{ $mode === 'login' ? route('register') : route('login') }}">{{ $mode === 'login' ? 'Create an account' : 'Log in' }}</a></div>
+        <div class="auth-switch">{{ $mode === 'login' ? 'New to AapkaSarthi?' : 'Already have an account?' }} <a href="{{ $mode === 'login' ? route('register') : route('login') }}">{{ $mode === 'login' ? 'Create an account' : 'Log in' }}</a></div>
         <div class="auth-disclaimer"><i class="bi bi-info-circle me-1"></i> Guides provide practical, non-medical hospital support.</div>
     </div>
 </div>

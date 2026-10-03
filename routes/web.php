@@ -35,6 +35,7 @@ Route::middleware('guest')->group(function () {
 Route::get('/hospitals/{hospital}/guides', [HospitalController::class, 'guides'])->name('hospitals.guides');
 
 Route::middleware(['auth', 'active'])->group(function () {
+	Route::get('/logout', fn () => redirect()->route('home'));
 	Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 	Route::get('/dashboard', DashboardController::class)->name('dashboard');
 });
@@ -42,10 +43,12 @@ Route::middleware(['auth', 'active'])->group(function () {
 Route::middleware(['auth', 'active', 'role:patient'])->group(function () {
 	Route::patch('/patient/profile', [PatientController::class, 'updateProfile'])->name('patient.profile.update');
 	Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+	Route::get('/bookings/{booking}/status', [BookingController::class, 'status'])->name('bookings.status');
 	Route::delete('/bookings/{booking}', [BookingController::class, 'cancel'])->name('bookings.cancel');
 });
 
 Route::middleware(['auth', 'active', 'role:guide'])->prefix('guide')->name('guide.')->group(function () {
+	Route::get('/booking-notifications', [GuideController::class, 'pendingNotifications'])->name('bookings.notifications');
 	Route::patch('/availability', [GuideController::class, 'updateAvailability'])->name('availability.update');
 	Route::put('/profile', [GuideController::class, 'updateProfile'])->name('profile.update');
 	Route::patch('/bookings/{booking}', [GuideController::class, 'respond'])->name('bookings.respond');

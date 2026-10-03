@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\GuideProfile;
-use App\Models\Hospital;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -17,17 +16,13 @@ class GuideApiController extends Controller
             'time' => ['nullable', 'required_with:date', 'date_format:H:i'],
         ]);
         $weekday = isset($filters['date']) ? Carbon::parse($filters['date'])->dayOfWeek : null;
-        $hospitalCity = isset($filters['hospital_id'])
-            ? Hospital::query()->whereKey($filters['hospital_id'])->value('city')
-            : null;
 
         $guides = GuideProfile::query()
             ->with(['user:id,name,avatar_url', 'hospitals:id,name,city'])
             ->where('is_verified', true)
             ->where('is_available', true)
             ->when($request->filled('hospital_id'), fn ($query) => $query
-                ->where('city', $hospitalCity)
-                ->whereHas('hospitals', fn ($hospital) => $hospital->whereKey($request->integer('hospital_id'))->where('city', $hospitalCity)->where('is_active', true)))
+                ->whereHas('hospitals', fn ($hospital) => $hospital->whereKey($request->integer('hospital_id'))->where('is_active', true)))
             ->when(isset($filters['date'], $filters['time']), function ($query) use ($filters, $weekday) {
                 $query->whereHas('availabilities', fn ($availability) => $availability
                     ->where('weekday', $weekday)

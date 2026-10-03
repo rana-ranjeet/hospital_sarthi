@@ -86,4 +86,131 @@
         </aside>
     </div>
 </div>
+<div
+    id="guide-booking-notification"
+    class="guide-request-modal"
+    hidden
+    data-notifications-url="{{ route('guide.bookings.notifications') }}"
+    data-response-url-template="{{ route('guide.bookings.respond', ['booking' => 'BOOKING_ID']) }}"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="guide-request-title"
+>
+    <div class="guide-request-dialog">
+        <span class="guide-request-eyebrow">NEW BOOKING REQUEST</span>
+        <h2 id="guide-request-title">A patient needs your help</h2>
+        <p class="guide-request-patient"></p>
+        <p class="guide-request-details"></p>
+        <p class="guide-request-note"></p>
+        <p class="guide-request-countdown" role="timer"></p>
+        <p class="guide-request-error" role="status" hidden></p>
+        <div class="guide-request-actions">
+            <button type="button" class="guide-button guide-button-decline" data-request-status="rejected">Decline</button>
+            <button type="button" class="guide-button guide-button-accept" data-request-status="accepted">Accept request</button>
+        </div>
+    </div>
+</div>
+@push('scripts')
+<script>
+(() => {
+    const dialog = document.getElementById('guide-booking-notification');
+    if (!dialog) return;
+
+    const patient = dialog.querySelector('.guide-request-patient');
+    const details = dialog.querySelector('.guide-request-details');
+    const note = dialog.querySelector('.guide-request-note');
+    const countdown = dialog.querySelector('.guide-request-countdown');
+    const error = dialog.querySelector('.guide-request-error');
+    const actionButtons = [...dialog.querySelectorAll('[data-request-status]')];
+    const pending = [];
+    const seen = new Set();
+    let activeRequest = null;
+    let checking = false;
+
+    const renderNext = () => {
+        if (activeRequest || pending.length === 0) return;
+        activeRequest = pending.shift();
+        patient.textContent = activeRequest.patient_name || 'Patient';
+        details.textContent = `${activeRequest.hospital} · ${activeRequest.service} · ${activeRequest.visit_date} at ${activeRequest.start_time}`;
+        note.textContent = activeRequest.message || '';
+        error.hidden = true;
+        actionButtons.forEach(button => { button.disabled = false; });
+        dialog.hidden = false;
+        actionButtons.find(button => button.dataset.requestStatus === 'accepted')?.focus();
+        updateCountdown();
+    };
+
+    const updateCountdown = () => {
+        if (!activeRequest) return;
+        const seconds = Math.max(0, Math.ceil((Date.parse(activeRequest.response_deadline) - Date.now()) / 1000));
+        countdown.textContent = seconds > 0
+            ? `Respond within ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+            : 'This request has expired.';
+        if (seconds === 0) {
+            actionButtons.forEach(button => { button.disabled = true; });
+            window.setTimeout(() => {
+                activeRequest = null;
+                dialog.hidden = true;
+                renderNext();
+            }, 1200);
+        }
+    };
+
+    const poll = async () => {
+        if (checking) return;
+        checking = true;
+        try {
+            const response = await fetch(dialog.dataset.notificationsUrl, {
+                headers: { Accept: 'application/json' },
+                cache: 'no-store',
+            });
+            if (!response.ok) return;
+            const result = await response.json();
+            result.requests.forEach(request => {
+                if (!seen.has(request.id)) {
+                    seen.add(request.id);
+                    pending.push(request);
+                }
+            });
+            renderNext();
+        } catch (requestError) {
+            console.error('Could not check booking requests.', requestError);
+        } finally {
+            checking = false;
+        }
+    };
+
+    actionButtons.forEach(button => button.addEventListener('click', async () => {
+        if (!activeRequest) return;
+        actionButtons.forEach(action => { action.disabled = true; });
+        error.hidden = true;
+        try {
+            const url = dialog.dataset.responseUrlTemplate.replace('BOOKING_ID', activeRequest.id);
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                body: JSON.stringify({ status: button.dataset.requestStatus }),
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Could not update this request.');
+            activeRequest = null;
+            dialog.hidden = true;
+            window.location.reload();
+        } catch (requestError) {
+            error.textContent = requestError.message;
+            error.hidden = false;
+            actionButtons.forEach(action => { action.disabled = false; });
+        }
+    }));
+
+    window.setInterval(updateCountdown, 1000);
+    window.setInterval(poll, 3000);
+    poll();
+})();
+</script>
+@endpush
 @endsection

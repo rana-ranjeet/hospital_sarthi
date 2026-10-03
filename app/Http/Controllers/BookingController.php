@@ -92,6 +92,8 @@ class BookingController extends Controller
 
         try {
             $booking = DB::transaction(function () use ($request, $validated) {
+                Booking::expirePendingResponses();
+
                 $hospital = Hospital::query()->whereKey($validated['hospital_id'])->where('is_active', true)->first();
                 if (! $hospital) {
                     throw ValidationException::withMessages(['hospital_id' => 'This hospital is not accepting bookings.']);
@@ -150,6 +152,7 @@ class BookingController extends Controller
                     'message' => $validated['message'] ?? null,
                     'amount' => $service->base_price,
                     'status' => 'pending',
+                    'response_deadline' => now()->addMinutes(2),
                     'payment_status' => 'pending',
                 ]);
                 $booking->services()->sync([$service->id]);
@@ -174,11 +177,56 @@ class BookingController extends Controller
                 'message' => 'Booking created successfully. Payment is pending; no payment was collected.',
                 'booking_id' => $booking->id,
                 'status' => $booking->status,
+                'response_deadline' => $booking->response_deadline->toIso8601String(),
+                'seconds_remaining' => 120,
                 'payment_status' => $booking->payment_status,
             ], 201);
         }
 
         return redirect()->route('dashboard')->with('status', 'Your booking request was sent to the guide.');
+    }
+
+    public function status(Request $request, Booking $booking): JsonResponse
+    {
+        abort_unless($booking->patient_id === $request->user()->id, 403);
+
+        Booking::query()
+            ->whereKey($booking->id)
+            ->where('status', 'pending')
+            ->whereNotNull('response_deadline')
+            ->where('response_deadline', '<=', now())
+            ->update(['status' => 'expired']);
+
+        $booking->refresh()->loadMissing(['guideProfile.user']);
+        $remaining = $booking->status === 'pending' && $booking->response_deadline
+            ? max(0, now()->diffInSeconds($booking->response_deadline, false))
+            : 0;
+
+        $response = [
+            'booking_id' => $booking->id,
+            'status' => $booking->status,
+            'response_deadline' => $booking->response_deadline?->toIso8601String(),
+            'seconds_remaining' => $remaining,
+        ];
+
+        if ($booking->status === 'accepted') {
+            $guideUser = $booking->guideProfile?->user;
+            $rawPhone = trim((string) ($guideUser?->phone ?: $guideUser?->mobile_number));
+            $digits = preg_replace('/\D+/', '', $rawPhone);
+            if (strlen($digits) === 10) {
+                $digits = ltrim((string) ($guideUser?->mobile_country_code ?: '+91'), '+').$digits;
+            } elseif (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+                $digits = '91'.substr($digits, 1);
+            }
+
+            $response['guide'] = [
+                'name' => $guideUser?->name,
+                'phone' => $rawPhone ?: null,
+                'whatsapp_url' => $digits ? 'https://wa.me/'.$digits.'?text='.rawurlencode('Hi, my booking #'.$booking->id.' was accepted. I am contacting you about the visit.') : null,
+            ];
+        }
+
+        return response()->json($response);
     }
 
     private function normalizeIndianMobile(?string $mobile): ?string

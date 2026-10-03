@@ -21,13 +21,18 @@
 <body class="cura-home" id="top">
     <header class="cura-header">
         <div class="cura-header-inner">
-            <a href="{{ route('home') }}" class="cura-brand" aria-label="AapkaSarthi home">
-                <span class="cura-brand-mark" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 19 5v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V5l7-3Z"/><path d="m9.5 12 1.8 1.8 3.2-3.8"/></svg>
-                </span>
-                <span class="cura-brand-copy"><strong>AapkaSarthi</strong><small>NAVIGATE WITH CONFIDENCE</small></span>
-            </a>
+           <a href="/" class="cura-brand">
+        <img src="{{ asset('storage/images/logo.PNG') }}"
+         alt="AapkaSarthi Logo"
+            class="cura-brand-logo"
+            width="46" height="46"
+            style="width: 46px; height: 46px; object-fit: contain; flex: 0 0 auto;">
 
+    <span class="cura-brand-copy">
+        <strong>AapkaSarthi</strong>
+        <small>NAVIGATE WITH CONFIDENCE</small>
+    </span>
+</a>
             <nav class="cura-nav" aria-label="Main navigation">
                 <a href="#hospitals">Hospitals</a>
                 <a href="#services">Services</a>
@@ -82,8 +87,8 @@
                 </div>
 
                 <div class="cura-hero-visual">
-                    <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1400&q=85" alt="A bright hospital corridor with clear wayfinding" fetchpriority="high">
-                    <div class="cura-image-caption">
+                    <img src="{{ asset('storage/images/Trusted Assistance in the Hospital Lobby.png') }}" 
+     alt="Aapka Saarthi" style="width: 100%; height: auto;">
                         <span class="cura-caption-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9M9 20v-6h6v6"/><path d="M12 5v4m-2-2h4"/></svg></span>
                         <span><strong>Your visit, made easier</strong><small>A familiar face for the visit ahead, from first counter to last.</small></span>
                         <svg class="cura-caption-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="Verified"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>
@@ -98,7 +103,7 @@
 @include('components.how-it-works')
 @include('components.reviews-slider')
 @include('components.trust-faq-cta')
-        
+ @include('components.hospital-guidelines')     
 
         
 
